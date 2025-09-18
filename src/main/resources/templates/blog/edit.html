@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Blog - Blog App</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        .edit-form {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 2rem;
+        }
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-update {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+        }
+        .btn-update:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        .invalid-feedback {
+            display: block;
+        }
+        #content {
+            min-height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">
+                <i class="fas fa-blog"></i> BlogApp
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/about}">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/blog/create}">Create Blog</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <form th:action="@{/logout}" method="post" style="margin: 0;">
+                                    <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; cursor: pointer;">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="edit-form">
+                    <div class="text-center mb-4">
+                        <h2 class="text-success">
+                            <i class="fas fa-edit"></i> Edit Blog Post
+                        </h2>
+                        <p class="text-muted">Update your blog post content</p>
+                    </div>
+                    
+                    <form th:action="@{/blog/edit/{id}(id=${blogPost.id})}" method="post" th:object="${blogPost}">
+                        <div class="mb-4">
+                            <label for="title" class="form-label fw-bold">
+                                <i class="fas fa-heading"></i> Blog Title
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   th:class="${#fields.hasErrors('title')} ? 'form-control form-control-lg is-invalid' : 'form-control form-control-lg'"
+                                   id="title" 
+                                   th:field="*{title}" 
+                                   placeholder="Enter an engaging title for your blog post">
+                            <div th:if="${#fields.hasErrors('title')}" class="invalid-feedback">
+                                <span th:errors="*{title}"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="imageUrl" class="form-label fw-bold">
+                                <i class="fas fa-image"></i> Featured Image URL (Optional)
+                            </label>
+                            <input type="url" 
+                                   class="form-control" 
+                                   id="imageUrl" 
+                                   th:field="*{imageUrl}" 
+                                   placeholder="https://example.com/image.jpg">
+                            <small class="form-text text-muted">Add a featured image to make your blog post more attractive</small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="content" class="form-label fw-bold">
+                                <i class="fas fa-edit"></i> Blog Content
+                            </label>
+                            <textarea class="form-control" 
+                                      th:class="${#fields.hasErrors('content')} ? 'form-control is-invalid' : 'form-control'"
+                                      id="content" 
+                                      th:field="*{content}" 
+                                      rows="15" 
+                                      placeholder="Write your blog content here..."></textarea>
+                            <div th:if="${#fields.hasErrors('content')}" class="invalid-feedback">
+                                <span th:errors="*{content}"></span>
+                            </div>
+                            <small class="form-text text-muted">Minimum 50 characters required</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <div>
+                                <a th:href="@{/blog/view/{id}(id=${blogPost.id})}" class="btn btn-outline-secondary btn-lg">
+                                    <i class="fas fa-arrow-left"></i> Back to Post
+                                </a>
+                            </div>
+                            <div>
+                                <a th:href="@{/}" class="btn btn-outline-secondary btn-lg me-md-2">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-success btn-update btn-lg">
+                                    <i class="fas fa-save"></i> Update Blog
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <div class="container">
+            <p>&copy; 2024 BlogApp. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Auto-resize textarea
+        document.getElementById('content').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+        
+        // Character counter
+        const contentTextarea = document.getElementById('content');
+        const charCounter = document.createElement('small');
+        charCounter.className = 'form-text text-muted float-end';
+        contentTextarea.parentNode.appendChild(charCounter);
+        
+        function updateCharCount() {
+            const count = contentTextarea.value.length;
+            charCounter.textContent = count + ' characters';
+            if (count < 50) {
+                charCounter.className = 'form-text text-danger float-end';
+            } else {
+                charCounter.className = 'form-text text-success float-end';
+            }
+        }
+        
+        contentTextarea.addEventListener('input', updateCharCount);
+        updateCharCount();
+    </script>
+</body>
+</html>

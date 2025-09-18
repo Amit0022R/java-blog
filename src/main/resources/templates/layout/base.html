@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title th:text="${title != null ? title + ' - Blog App' : 'Blog App'}">Blog App</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .blog-card {
+            transition: transform 0.2s ease-in-out;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .blog-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .blog-preview-img {
+            height: 200px;
+            object-fit: cover;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        .like-btn {
+            border: none;
+            background: none;
+            color: #6c757d;
+            transition: color 0.2s;
+        }
+        .like-btn:hover {
+            color: #e74c3c;
+        }
+        .like-btn.liked {
+            color: #e74c3c;
+        }
+        .comment-section {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .comment-item {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 3px solid #007bff;
+        }
+        .share-buttons a {
+            margin-right: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        .share-buttons a:hover {
+            opacity: 0.8;
+        }
+        .share-facebook { background-color: #3b5998; }
+        .share-twitter { background-color: #1da1f2; }
+        .share-linkedin { background-color: #0077b5; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">
+                <i class="fas fa-blog"></i> BlogApp
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/about}">About</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                        <a class="nav-link" th:href="@{/blog/create}">Create Blog</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link" th:href="@{/login}">Login</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link" th:href="@{/register}">Register</a>
+                    </li>
+                    <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <form th:action="@{/logout}" method="post" style="margin: 0;">
+                                    <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; cursor: pointer;">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        <div th:replace="${content}"></div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <div class="container">
+            <p>&copy; 2025 BlogApp. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script>
+        // Get CSRF token for AJAX requests
+        function getCSRFToken() {
+            return $('meta[name="_csrf"]').attr('content');
+        }
+        
+        function getCSRFHeader() {
+            return $('meta[name="_csrf_header"]').attr('content');
+        }
+        
+        // AJAX Like functionality
+        function likeBlog(blogId) {
+            var token = getCSRFToken();
+            var header = getCSRFHeader();
+            
+            $.ajax({
+                url: '/blog/like/' + blogId,
+                type: 'POST',
+                dataType: 'json',
+                beforeSend: function(xhr) {
+                    if (token && header) {
+                        xhr.setRequestHeader(header, token);
+                    }
+                },
+                success: function(data) {
+                    if (data.success) {
+                        // Update likes count
+                        $('#likes-count-' + blogId).text(data.likes);
+                        
+                        // Update button appearance based on like status
+                        var likeBtn = $('#like-btn-' + blogId);
+                        if (data.liked) {
+                            // Post was liked
+                            likeBtn.removeClass('btn-outline-danger').addClass('btn-danger liked');
+                            likeBtn.find('i').removeClass('far').addClass('fas');
+                        } else {
+                            // Post was unliked
+                            likeBtn.removeClass('btn-danger liked').addClass('btn-outline-danger');
+                            likeBtn.find('i').removeClass('fas').addClass('far');
+                        }
+                        
+                        // Show success message
+                        console.log(data.message);
+                    } else {
+                        alert('Failed to toggle like on the blog post');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    console.error('Status:', xhr.status);
+                    console.error('Response:', xhr.responseText);
+                    
+                    if (xhr.status === 401) {
+                        alert('Please log in to like this blog post');
+                        window.location.href = '/login';
+                    } else if (xhr.status === 403) {
+                        alert('Access forbidden. Please refresh the page and try again.');
+                        window.location.reload();
+                    } else {
+                        alert('Error liking the blog post. Please try again.');
+                    }
+                }
+            });
+        }
+        
+        // Social Share Functions
+        function shareOnFacebook(url, title) {
+            window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
+        }
+        
+        function shareOnTwitter(url, title) {
+            window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title), '_blank');
+        }
+        
+        function shareOnLinkedIn(url, title) {
+            window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url), '_blank');
+        }
+    </script>
+</body>
+</html>

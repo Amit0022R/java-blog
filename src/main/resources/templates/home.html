@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>Home - Blog App</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .blog-card {
+            transition: transform 0.2s ease-in-out;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 100%;
+        }
+        .blog-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .blog-preview-img {
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 0;
+            margin-bottom: 40px;
+        }
+        .card-body {
+            display: flex;
+            flex-direction: column;
+        }
+        .card-text {
+            flex-grow: 1;
+        }
+        .blog-meta {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">
+                <i class="fas fa-blog"></i> BlogApp
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/about}">About</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                        <a class="nav-link" th:href="@{/blog/create}">Create Blog</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link" th:href="@{/login}">Login</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link" th:href="@{/register}">Register</a>
+                    </li>
+                    <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <form th:action="@{/logout}" method="post" style="margin: 0;">
+                                    <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; cursor: pointer;">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold">Welcome to BlogApp</h1>
+            <p class="lead">Discover amazing stories, share your thoughts, and connect with writers from around the world.</p>
+            <div sec:authorize="!isAuthenticated()">
+                <a th:href="@{/register}" class="btn btn-light btn-lg me-3">Get Started</a>
+                <a th:href="@{/login}" class="btn btn-outline-light btn-lg">Sign In</a>
+            </div>
+            <div sec:authorize="isAuthenticated()">
+                <a th:href="@{/blog/create}" class="btn btn-light btn-lg">
+                    <i class="fas fa-plus"></i> Create Your First Blog
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Error Messages -->
+        <div th:if="${param.error != null}" class="row">
+            <div class="col-12">
+                <div class="alert alert-warning alert-dismissible fade show" role="alert" th:if="${param.error[0] == 'notfound'}">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Blog post not found!</strong> The blog post you're looking for doesn't exist.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" th:if="${param.error[0] == 'database'}">
+                    <i class="fas fa-exclamation-circle"></i> <strong>Database Error!</strong> There was a problem loading the blog post. Please try again later.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Blog Posts Section -->
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">Latest Blog Posts</h2>
+            </div>
+        </div>
+
+        <div class="row" th:if="${blogPosts != null and !blogPosts.empty}">
+            <div class="col-lg-4 col-md-6 mb-4" th:each="post : ${blogPosts}">
+                <div class="card blog-card">
+                    <div class="blog-preview-img" th:if="${post.imageUrl == null}">
+                        <i class="fas fa-blog"></i>
+                    </div>
+                    <img th:if="${post.imageUrl != null}" th:src="${post.imageUrl}" class="card-img-top blog-preview-img" alt="Blog image">
+                    
+                    <div class="card-body">
+                        <h5 class="card-title" th:text="${post.title}">Blog Title</h5>
+                        <p class="card-text" th:text="${post.previewText}">Blog preview text...</p>
+                        
+                        <div class="blog-meta mb-3">
+                            <small>
+                                <i class="fas fa-user"></i> <span th:text="${post.author.name}">Author</span> |
+                                <i class="fas fa-calendar"></i> <span th:text="${#temporals.format(post.createdAt, 'MMM dd, yyyy')}">Date</span> |
+                                <i class="fas fa-heart"></i> <span th:text="${likesCountMap[post.id]}">0</span> likes |
+                                <i class="fas fa-comments"></i> <span th:text="${post.comments != null ? post.comments.size() : 0}">0</span> comments
+                            </small>
+                        </div>
+
+
+                        <div class="mt-auto">
+                            <a th:href="@{/blog/view/{id}(id=${post.id})}" class="btn btn-primary">Read More</a>
+                            <div sec:authorize="isAuthenticated()" class="d-inline">
+                                <button th:id="'like-btn-' + ${post.id}"
+                                        th:class="${userLikedMap[post.id]} ? 'btn btn-danger btn-sm ms-2 liked' : 'btn btn-outline-danger btn-sm ms-2'"
+                                        th:onclick="'likeBlog(' + ${post.id} + ')'">
+                                    <i th:class="${userLikedMap[post.id]} ? 'fas fa-heart' : 'far fa-heart'"></i> <span th:id="'likes-count-' + ${post.id}" th:text="${likesCountMap[post.id]}">0</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="row" th:if="${blogPosts == null or blogPosts.empty}">
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-blog fa-5x text-muted mb-4"></i>
+                <h3 class="text-muted">No blog posts yet</h3>
+                <p class="text-muted">Be the first to share your story!</p>
+                <div sec:authorize="isAuthenticated()">
+                    <a th:href="@{/blog/create}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus"></i> Create Your First Blog
+                    </a>
+                </div>
+                <div sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/register}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-plus"></i> Join to Start Blogging
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <div class="container">
+            <p>&copy; 2025 BlogApp. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Like functionality is handled by base template -->
+</body>
+</html>

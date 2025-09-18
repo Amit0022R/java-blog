@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title th:text="${blogPost.title} + ' - Blog App'">Blog Post - Blog App</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        .blog-header {
+           background: linear-gradient(135deg, #a6a6a6 0%, #eae7ed 100%);
+            color: white;
+            padding: 60px 0;
+        }
+        .blog-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-top: -50px;
+            position: relative;
+            z-index: 1;
+        }
+        .blog-meta {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .like-btn {
+            border: none;
+            background: none;
+            color: #6c757d;
+            transition: color 0.2s;
+            font-size: 1.1rem;
+        }
+        .like-btn:hover {
+            color: #e74c3c;
+        }
+        .like-btn.liked {
+            color: #e74c3c;
+        }
+        .comment-section {
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .comment-item {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #007bff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .comment-author {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .comment-date {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .share-buttons a {
+            margin-right: 10px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .share-buttons a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .share-facebook { background-color: #3b5998; }
+        .share-twitter { background-color: #1da1f2; }
+        .share-linkedin { background-color: #0077b5; }
+        .blog-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        .author-actions {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/}">
+            <i class="fas fa-blog"></i> BlogApp
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/about}">About</a>
+                </li>
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <a class="nav-link" th:href="@{/blog/create}">Create Blog</a>
+                </li>
+            </ul>
+
+            <ul class="navbar-nav">
+                <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <a class="nav-link" th:href="@{/login}">Login</a>
+                </li>
+                <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <a class="nav-link" th:href="@{/register}">Register</a>
+                </li>
+                <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user"></i> <span sec:authentication="name"></span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <form th:action="@{/logout}" method="post" style="margin: 0;">
+                                <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; cursor: pointer;">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Blog Header -->
+<section class="blog-header">
+    <div class="container text-center">
+        <h1 class="display-5 fw-bold mb-3" th:text="${blogPost.title}">Blog Title</h1>
+        <div class="blog-meta">
+            <i class="fas fa-user"></i> <span th:text="${blogPost.author.name}">Author</span> |
+            <i class="fas fa-calendar"></i> <span th:text="${#temporals.format(blogPost.createdAt, 'MMMM dd, yyyy')}">Date</span> |
+            <i class="fas fa-heart"></i> <span th:text="${actualLikesCount}">0</span> likes |
+            <i class="fas fa-comments"></i> <span th:text="${comments != null ? comments.size() : 0}">0</span> comments
+        </div>
+    </div>
+</section>
+
+<!-- Main Content -->
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="blog-content">
+                <!-- Author Actions (Edit/Delete) -->
+                <div sec:authorize="isAuthenticated()" th:if="${#authentication.name == blogPost.author.email}" class="author-actions">
+                    <h6 class="mb-3"><i class="fas fa-cog"></i> Manage Your Post</h6>
+                    <a th:href="@{/blog/edit/{id}(id=${blogPost.id})}" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <form th:action="@{/blog/delete/{id}(id=${blogPost.id})}" method="post" class="d-inline"
+                          onsubmit="return confirm('Are you sure you want to delete this blog post?')">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Featured Image -->
+                <img th:if="${blogPost.imageUrl != null and !blogPost.imageUrl.isEmpty()}"
+                     th:src="${blogPost.imageUrl}"
+                     class="blog-image"
+                     alt="Featured Image">
+
+                <!-- Blog Content -->
+                <div class="blog-text">
+                    <p th:text="${blogPost.content}" style="white-space: pre-line; line-height: 1.8; font-size: 1.1rem;">
+                        Blog content goes here...
+                    </p>
+                </div>
+
+                <!-- Engagement Section -->
+                <hr class="my-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <button sec:authorize="isAuthenticated()"
+                                th:id="'like-btn-' + ${blogPost.id}"
+                                th:class="${userHasLiked} ? 'btn btn-danger like-btn me-3 liked' : 'btn btn-outline-danger like-btn me-3'"
+                                th:onclick="'likeBlog(' + ${blogPost.id} + ')'">
+                            <i th:class="${userHasLiked} ? 'fas fa-heart' : 'far fa-heart'"></i>
+                            <span th:id="'likes-count-' + ${blogPost.id}" th:text="${actualLikesCount}">0</span> Likes
+                        </button>
+                        <span class="text-muted">
+                                <i class="fas fa-comments"></i> <span th:text="${comments != null ? comments.size() : 0}">0</span> Comments
+                            </span>
+                    </div>
+                    <div class="share-buttons">
+                        <a href="#" class="share-facebook" onclick="shareOnFacebook(window.location.href, this.getAttribute('data-title'))" th:data-title="${blogPost.title}">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="share-twitter" onclick="shareOnTwitter(window.location.href, this.getAttribute('data-title'))" th:data-title="${blogPost.title}">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="share-linkedin" onclick="shareOnLinkedIn(window.location.href, this.getAttribute('data-title'))" th:data-title="${blogPost.title}">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="comment-section">
+                <h4 class="mb-4">
+                    <i class="fas fa-comments"></i> Comments
+                    <span class="badge bg-primary" th:text="${comments != null ? comments.size() : 0}">0</span>
+                </h4>
+
+                <!-- Add Comment Form (Only for authenticated users) -->
+                <div sec:authorize="isAuthenticated()" class="mb-4">
+                    <form th:action="@{/blog/comment/{id}(id=${blogPost.id})}" method="post" th:object="${newComment}">
+                        <div class="mb-3">
+                            <label for="content" class="form-label fw-bold">Add a Comment</label>
+                            <textarea class="form-control"
+                                      id="content"
+                                      th:field="*{content}"
+                                      rows="3"
+                                      placeholder="Share your thoughts about this blog post..."
+                                      required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Post Comment
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Login prompt for non-authenticated users -->
+                <div sec:authorize="!isAuthenticated()" class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <a th:href="@{/login}" class="alert-link">Login</a> to post a comment or
+                    <a th:href="@{/register}" class="alert-link">register</a> if you don't have an account.
+                </div>
+
+                <!-- Comments List -->
+                <div th:if="${comments != null and !comments.empty}">
+                    <div class="comment-item" th:each="comment : ${comments}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="comment-author" th:text="${comment.author.name}">Author Name</div>
+                            <div class="comment-date" th:text="${#temporals.format(comment.createdAt, 'MMM dd, yyyy HH:mm')}">Date</div>
+                        </div>
+                        <p class="mb-0" th:text="${comment.content}" style="white-space: pre-line;">Comment content</p>
+                    </div>
+                </div>
+
+                <!-- No Comments Message -->
+                <div th:if="${comments == null or comments.empty}" class="text-center py-4">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No comments yet</h5>
+                    <p class="text-muted">Be the first to share your thoughts!</p>
+                </div>
+            </div>
+
+            <!-- Back to Home -->
+            <div class="text-center mt-4">
+                <a th:href="@{/}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-arrow-left"></i> Back to All Posts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-dark text-white text-center py-3 mt-5">
+    <div class="container">
+        <p>&copy; 2024 BlogApp. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    // Get CSRF token for AJAX requests
+    function getCSRFToken() {
+        return $('meta[name="_csrf"]').attr('content');
+    }
+    
+    function getCSRFHeader() {
+        return $('meta[name="_csrf_header"]').attr('content');
+    }
+    
+    // AJAX Like functionality
+    function likeBlog(blogId) {
+        var token = getCSRFToken();
+        var header = getCSRFHeader();
+        
+        $.ajax({
+            url: '/blog/like/' + blogId,
+            type: 'POST',
+            dataType: 'json',
+            beforeSend: function(xhr) {
+                if (token && header) {
+                    xhr.setRequestHeader(header, token);
+                }
+            },
+            success: function(data) {
+                if (data.success) {
+                    // Update likes count
+                    $('#likes-count-' + blogId).text(data.likes);
+                    
+                    // Update button appearance based on like status
+                    var likeBtn = $('#like-btn-' + blogId);
+                    if (data.liked) {
+                        // Post was liked
+                        likeBtn.removeClass('btn-outline-danger').addClass('btn-danger liked');
+                        likeBtn.find('i').removeClass('far').addClass('fas');
+                    } else {
+                        // Post was unliked
+                        likeBtn.removeClass('btn-danger liked').addClass('btn-outline-danger');
+                        likeBtn.find('i').removeClass('fas').addClass('far');
+                    }
+                    
+                    // Show success message
+                    console.log(data.message);
+                } else {
+                    alert('Failed to toggle like on the blog post');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', error);
+                console.error('Status:', xhr.status);
+                console.error('Response:', xhr.responseText);
+                
+                if (xhr.status === 401) {
+                    alert('Please log in to like this blog post');
+                    window.location.href = '/login';
+                } else if (xhr.status === 403) {
+                    alert('Access forbidden. Please refresh the page and try again.');
+                    window.location.reload();
+                } else {
+                    alert('Error liking the blog post. Please try again.');
+                }
+            }
+        });
+    }
+
+    // Social Share Functions
+    function shareOnFacebook(url, title) {
+        window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+    }
+
+    function shareOnTwitter(url, title) {
+        window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title), '_blank', 'width=600,height=400');
+    }
+
+    function shareOnLinkedIn(url, title) {
+        window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+    }
+</script>
+</body>
+</html>
